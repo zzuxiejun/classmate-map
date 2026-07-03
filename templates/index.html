@@ -1,0 +1,620 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🎓 老同学城市分布地图</title>
+    <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/echarts/map/js/china.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            overflow: hidden;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+        
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
+        }
+        
+        .header p {
+            font-size: 1.2em;
+            opacity: 0.9;
+        }
+        
+        .stats {
+            display: flex;
+            justify-content: space-around;
+            padding: 20px;
+            background: #f8f9fa;
+            border-bottom: 2px solid #e9ecef;
+        }
+        
+        .stat-card {
+            text-align: center;
+            padding: 15px 30px;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            transition: transform 0.3s;
+        }
+        
+        .stat-card:hover {
+            transform: translateY(-5px);
+        }
+        
+        .stat-number {
+            font-size: 2.5em;
+            font-weight: bold;
+            color: #667eea;
+            display: block;
+        }
+        
+        .stat-label {
+            font-size: 1em;
+            color: #666;
+            margin-top: 5px;
+        }
+        
+        .content {
+            display: flex;
+            flex-wrap: wrap;
+            padding: 20px;
+            gap: 20px;
+        }
+        
+        .map-container {
+            flex: 1;
+            min-width: 600px;
+            height: 600px;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+        
+        #map {
+            width: 100%;
+            height: 100%;
+        }
+        
+        .sidebar {
+            width: 350px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+        
+        .card {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        
+        .card h3 {
+            color: #667eea;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #e9ecef;
+        }
+        
+        .city-rank {
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        
+        .city-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 10px;
+            margin-bottom: 8px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            transition: all 0.3s;
+        }
+        
+        .city-item:hover {
+            background: #667eea;
+            color: white;
+            transform: translateX(5px);
+        }
+        
+        .city-name {
+            font-weight: 500;
+        }
+        
+        .city-count {
+            background: #667eea;
+            color: white;
+            padding: 2px 10px;
+            border-radius: 12px;
+            font-size: 0.9em;
+        }
+        
+        .city-item:hover .city-count {
+            background: white;
+            color: #667eea;
+        }
+        
+        .classmate-list {
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        
+        .classmate-item {
+            display: flex;
+            align-items: center;
+            padding: 12px;
+            margin-bottom: 8px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            transition: all 0.3s;
+            cursor: pointer;
+        }
+        
+        .classmate-item:hover {
+            background: #e7f3ff;
+            transform: translateX(5px);
+        }
+        
+        .classmate-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+            margin-right: 12px;
+            flex-shrink: 0;
+        }
+        
+        .classmate-info {
+            flex: 1;
+        }
+        
+        .classmate-name {
+            font-weight: 500;
+            color: #333;
+            margin-bottom: 3px;
+        }
+        
+        .classmate-city {
+            font-size: 0.9em;
+            color: #666;
+        }
+        
+        .add-btn {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            border: none;
+            font-size: 2em;
+            cursor: pointer;
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+            transition: all 0.3s;
+            z-index: 1000;
+        }
+        
+        .add-btn:hover {
+            transform: scale(1.1);
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.6);
+        }
+        
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 2000;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .modal.active {
+            display: flex;
+        }
+        
+        .modal-content {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            max-width: 500px;
+            width: 90%;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+        
+        .modal-header {
+            font-size: 1.5em;
+            font-weight: bold;
+            color: #667eea;
+            margin-bottom: 20px;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            color: #333;
+            font-weight: 500;
+        }
+        
+        .form-group input {
+            width: 100%;
+            padding: 10px;
+            border: 2px solid #e9ecef;
+            border-radius: 8px;
+            font-size: 1em;
+            transition: border-color 0.3s;
+        }
+        
+        .form-group input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        
+        .btn-group {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+        }
+        
+        .btn {
+            flex: 1;
+            padding: 12px;
+            border: none;
+            border-radius: 8px;
+            font-size: 1em;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        }
+        
+        .btn-secondary {
+            background: #e9ecef;
+            color: #333;
+        }
+        
+        .btn-secondary:hover {
+            background: #dee2e6;
+        }
+        
+        .footer {
+            text-align: center;
+            padding: 20px;
+            color: #666;
+            font-size: 0.9em;
+            border-top: 2px solid #e9ecef;
+        }
+        
+        @media (max-width: 1024px) {
+            .content {
+                flex-direction: column;
+            }
+            
+            .map-container {
+                min-width: 100%;
+            }
+            
+            .sidebar {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🎓 老同学城市分布地图</h1>
+            <p>看看咱们班都分布在哪些城市</p>
+        </div>
+        
+        <div class="stats">
+            <div class="stat-card">
+                <span class="stat-number" id="totalCount">0</span>
+                <div class="stat-label">总人数</div>
+            </div>
+            <div class="stat-card">
+                <span class="stat-number" id="cityCount">0</span>
+                <div class="stat-label">城市数</div>
+            </div>
+            <div class="stat-card">
+                <span class="stat-number" id="topCity">-</span>
+                <div class="stat-label">人数最多城市</div>
+            </div>
+        </div>
+        
+        <div class="content">
+            <div class="map-container">
+                <div id="map"></div>
+            </div>
+            
+            <div class="sidebar">
+                <div class="card">
+                    <h3>📊 城市排行榜</h3>
+                    <div class="city-rank" id="cityRank"></div>
+                </div>
+                
+                <div class="card">
+                    <h3>👥 同学列表</h3>
+                    <div class="classmate-list" id="classmateList"></div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="footer">
+            <p>💡 提示：点击地图上的标记或右侧列表查看同学详情</p>
+            <p>🎨 升级版 - Python + ECharts 交互式可视化</p>
+        </div>
+    </div>
+    
+    <button class="add-btn" onclick="openModal()">+</button>
+    
+    <div class="modal" id="addModal">
+        <div class="modal-content">
+            <div class="modal-header">添加同学信息</div>
+            <form id="addForm">
+                <div class="form-group">
+                    <label>姓名 *</label>
+                    <input type="text" name="姓名" required placeholder="请输入姓名">
+                </div>
+                <div class="form-group">
+                    <label>城市 *</label>
+                    <input type="text" name="城市" required placeholder="请输入所在城市，如：北京">
+                </div>
+                <div class="form-group">
+                    <label>微信号</label>
+                    <input type="text" name="微信" placeholder="选填，方便联系">
+                </div>
+                <div class="form-group">
+                    <label>职业</label>
+                    <input type="text" name="职业" placeholder="选填，如：工程师">
+                </div>
+                <div class="form-group">
+                    <label>备注</label>
+                    <input type="text" name="备注" placeholder="选填，如：班长">
+                </div>
+                <div class="btn-group">
+                    <button type="button" class="btn btn-secondary" onclick="closeModal()">取消</button>
+                    <button type="submit" class="btn btn-primary">添加</button>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    <script>
+        let mapChart;
+        let classmatesData = [];
+        
+        // 初始化地图
+        function initMap() {
+            mapChart = echarts.init(document.getElementById('map'));
+            
+            const option = {
+                title: {
+                    text: '同学城市分布',
+                    left: 'center',
+                    textStyle: {
+                        color: '#667eea',
+                        fontSize: 18
+                    }
+                },
+                tooltip: {
+                    trigger: 'item',
+                    formatter: function(params) {
+                        if (params.value) {
+                            return `${params.name}<br/>人数：${params.value[2]}人`;
+                        }
+                        return params.name;
+                    }
+                },
+                geo: {
+                    map: 'china',
+                    roam: true,
+                    zoom: 1.2,
+                    itemStyle: {
+                        areaColor: '#e0e0e0',
+                        borderColor: '#404a59'
+                    },
+                    emphasis: {
+                        itemStyle: {
+                            areaColor: '#37a2da'
+                        }
+                    }
+                },
+                series: [{
+                    name: '同学分布',
+                    type: 'scatter',
+                    coordinateSystem: 'geo',
+                    data: [],
+                    symbolSize: function(val) {
+                        return Math.max(val[2] * 15, 20);
+                    },
+                    itemStyle: {
+                        color: '#667eea'
+                    },
+                    emphasis: {
+                        itemStyle: {
+                            color: '#764ba2',
+                            borderColor: '#fff',
+                            borderWidth: 2
+                        }
+                    },
+                    label: {
+                        show: false
+                    }
+                }]
+            };
+            
+            mapChart.setOption(option);
+        }
+        
+        // 加载数据
+        async function loadData() {
+            try {
+                const response = await fetch('/api/data');
+                const data = await response.json();
+                
+                classmatesData = data.classmates;
+                
+                // 更新统计
+                document.getElementById('totalCount').textContent = data.totalCount;
+                document.getElementById('cityCount').textContent = data.cityCount;
+                
+                const topCity = Object.entries(data.cityStats).sort((a, b) => b[1] - a[1])[0];
+                document.getElementById('topCity').textContent = topCity ? topCity[0] : '-';
+                
+                // 更新地图
+                mapChart.setOption({
+                    series: [{
+                        data: data.mapData
+                    }]
+                });
+                
+                // 更新城市排行
+                updateCityRank(data.cityStats);
+                
+                // 更新同学列表
+                updateClassmateList(data.classmates);
+                
+            } catch (error) {
+                console.error('加载数据失败:', error);
+            }
+        }
+        
+        // 更新城市排行
+        function updateCityRank(cityStats) {
+            const sorted = Object.entries(cityStats).sort((a, b) => b[1] - a[1]);
+            const html = sorted.map(([city, count], index) => `
+                <div class="city-item">
+                    <span class="city-name">${index + 1}. ${city}</span>
+                    <span class="city-count">${count}人</span>
+                </div>
+            `).join('');
+            document.getElementById('cityRank').innerHTML = html;
+        }
+        
+        // 更新同学列表
+        function updateClassmateList(classmates) {
+            const html = classmates.map(c => `
+                <div class="classmate-item" onclick="showClassmateDetail('${c.姓名}')">
+                    <div class="classmate-avatar">${c.姓名[0]}</div>
+                    <div class="classmate-info">
+                        <div class="classmate-name">${c.姓名}</div>
+                        <div class="classmate-city">📍 ${c.城市}</div>
+                    </div>
+                </div>
+            `).join('');
+            document.getElementById('classmateList').innerHTML = html;
+        }
+        
+        // 显示同学详情
+        function showClassmateDetail(name) {
+            const classmate = classmatesData.find(c => c.姓名 === name);
+            if (classmate) {
+                alert(`姓名：${classmate.姓名}\n城市：${classmate.城市}\n微信：${classmate.微信 || '未填写'}\n职业：${classmate.职业 || '未填写'}\n备注：${classmate.备注 || '无'}`);
+            }
+        }
+        
+        // 打开添加模态框
+        function openModal() {
+            document.getElementById('addModal').classList.add('active');
+        }
+        
+        // 关闭添加模态框
+        function closeModal() {
+            document.getElementById('addModal').classList.remove('active');
+            document.getElementById('addForm').reset();
+        }
+        
+        // 提交表单
+        document.getElementById('addForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const formData = new FormData(this);
+            const data = Object.fromEntries(formData);
+            
+            try {
+                const response = await fetch('/api/add', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(data)
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    alert('添加成功！');
+                    closeModal();
+                    loadData();
+                } else {
+                    alert('添加失败：' + result.message);
+                }
+            } catch (error) {
+                alert('添加失败：' + error.message);
+            }
+        });
+        
+        // 页面加载完成后初始化
+        window.addEventListener('DOMContentLoaded', function() {
+            initMap();
+            loadData();
+            
+            // 窗口大小改变时重绘地图
+            window.addEventListener('resize', function() {
+                mapChart.resize();
+            });
+        });
+    </script>
+</body>
+</html>
